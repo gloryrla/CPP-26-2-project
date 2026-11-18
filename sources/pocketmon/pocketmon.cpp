@@ -23,26 +23,29 @@ const string NAMES[151] = {
     "뮤"
 };
 
-//포켓몬 객체 생성시 랜덤한 포켓몬 종류 생성
-Pocketmon::Pocketmon() {
+// 1. 기본 생성자: 랜덤 id를 뽑아서 아래 생성자를 호출
+Pocketmon::Pocketmon() : Pocketmon(rand() % 151 + 1) {
+}
+
+// 2. id를 받는 생성자: 실제 초기화 로직을 한 곳에서만 관리
+Pocketmon::Pocketmon(int id) {
+    this->id = id;          // <-- 멤버 변수 id에 저장 (필수!)
     maxHp = 100;
     crrHp = maxHp;
-    id = rand() % 151 + 1;
     name = NAMES[id - 1];   // 배열은 0부터라서 -1
 
-    ifstream fin("../../pocketmonImages/" + to_string(id) + "_" + name + ".txt");
+    ifstream fin("../pocketmonImages/" + to_string(id) + "_" + name + ".txt");
     string line;
-    while (getline(fin, line)) 
-    {
+    while (getline(fin, line)) {
         art += line + "\n";
     }
 
-    printPocketInfo();
-
 }
 
+
+
 void Pocketmon::printPocketInfo() {
-    cout << "야생 포켓몬 " << name << "이 출현했다!" << endl;
+    cout << name << endl;
     printHpBar();
     cout << art;
 }
