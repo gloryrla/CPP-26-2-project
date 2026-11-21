@@ -106,6 +106,25 @@ int main() {
                 cout << "야생의 포켓몬이 나타났다!\n";
                 Pocketmon p;
                 p.printPocketInfo();
+
+                cout << "1. 싸운다 2. 도망친다";
+                cin >> user_input;
+
+                if (user_input == "1") {
+                    user.getPocketmons()[0].printPocketInfo();
+                    user.getPocketmons()[0].printSkills();
+
+                    cout << "사용할 스킬 번호를 입력하세요: ";
+                    cin >> user_input;
+
+                    if (user_input == "1") {
+                        cout << user.getPocketmons()[0].getSkills()[0].name << "사용";
+                    } else if(user_input == "2") {
+                        cout << user.getPocketmons()[0].getSkills()[1].name << "사용";
+                    } 
+                } else {
+                    cout << "무사히 도망쳤다.";
+                }
             }
         }
 
