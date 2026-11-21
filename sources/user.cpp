@@ -12,5 +12,12 @@ vector<Pocketmon> User::getPocketmons()
 }
 
 
+void User::printPocketmon()
+{
+    for (Pocketmon& p: pocketmons){
+        p.printPocketInfo();
+    }
+}
+
 
 

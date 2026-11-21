@@ -10,9 +10,9 @@ private:
     int crrHp;
     string name;
     string art;
+    void printHpBar();
 public:
     Pocketmon();
     Pocketmon(int id);
-    void printHpBar();
     void printPocketInfo();
 };

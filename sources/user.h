@@ -12,6 +12,7 @@ private:
 public:
     void addPocketmon(const Pocketmon& pocketmon);
     vector<Pocketmon> getPocketmons();
+    void printPocketmon();
 
 };
 
