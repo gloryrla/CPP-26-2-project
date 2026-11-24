@@ -21,4 +21,7 @@ public:
     void printPocketInfo();
     void printSkills();
     vector<Skill> getSkills();
+    int getHp();
+    bool DemagePocketmon(Skill skill, bool flag);
+    string getName();
 };

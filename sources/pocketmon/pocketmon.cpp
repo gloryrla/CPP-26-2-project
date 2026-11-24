@@ -116,4 +116,30 @@ vector<Skill> Pocketmon::getSkills() {
     return skills;
 }
 
+int Pocketmon::getHp() {
+    return crrHp;
+}
+
+bool Pocketmon::DemagePocketmon(Skill skill, bool flag) {
+    cout << skill.name << "사용" << endl;
+    cout << name << "이/가 " << skill.power << "데미지를 입었다" << endl;
+
+    crrHp -= skill.power;
+
+    if (crrHp <= 0) {
+        crrHp = 0;
+        cout << name <<"을 쓰러트렸습니다." << endl;
+        printPocketInfo();
+        flag = false;
+    } else {
+        printPocketInfo();
+    }
+
+    return flag;
+}
+
+string Pocketmon::getName() {
+    return name;
+};
+
 
