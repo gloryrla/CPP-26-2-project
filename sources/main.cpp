@@ -12,10 +12,43 @@ const int GRASS = 2;
 
 // ANSI 색상 코드 상수
 const string RESET = "\033[0m";
-const string GREEN = "\033[32m";         // 초록 글자 (깔끔한 풀숲)
-const string GRASS_TILE = "\033[42;92m"; // 초록 배경 + 연두 글자 (타일형 풀숲)
-const string YELLOW = "\033[93m";        // 플레이어 표시
-const string GRAY = "\033[90m";          // 빈 길 표시
+
+// 픽셀 타일: 글자 하나 = 픽셀 하나 (색은 pixelColor 참고), 한 칸은 8x8 픽셀
+const int TILE_SIZE = 8;
+// 맵 값(ROAD, WALL, GRASS)을 그대로 인덱스로 사용
+const string TILES[3][TILE_SIZE] = {
+    {"pppppppp", "ppppppsp", "pspppppp", "pppppppp", // 길
+     "ppppsppp", "pppppppp", "ppsppppp", "pppppppp"},
+    {"ddDDDDdd", "dDGLLGDd", "DGLLGGGD", "DGLGGGGD", // 나무(벽)
+     "DGGGGGGD", "dDGGGGDd", "ddDTTDdd", "dddTTddd"},
+    {"gggggggg", "gbgggbgg", "gblgbblg", "gggggggg", // 풀숲
+     "gggbgggg", "glbbgbgg", "ggggbblg", "gggggggg"}};
+// 플레이어: 공백은 투명 (밑에 깔린 타일이 보임)
+const string PLAYER_TILE[TILE_SIZE] = {
+    "  RRRR  ", " RRRRRR ", " KkkkkK ", " kKkkKk ",
+    "  BBBB  ", " kBBBBk ", "  BBBB  ", "  K  K  "};
+
+// 픽셀 글자 -> "R;G;B"
+string pixelColor(char c)
+{
+    switch (c)
+    {
+    case 'p': return "215;190;130"; // 길
+    case 's': return "195;168;110"; // 길 위 자갈
+    case 'd': return "40;110;60";   // 나무 밑 바닥
+    case 'D': return "15;80;40";    // 나무 테두리
+    case 'G': return "30;140;60";   // 나뭇잎
+    case 'L': return "80;180;90";   // 밝은 나뭇잎
+    case 'T': return "110;75;40";   // 나무 줄기
+    case 'g': return "90;180;80";   // 풀숲 바닥
+    case 'b': return "50;140;60";   // 풀잎
+    case 'l': return "140;215;110"; // 밝은 풀잎
+    case 'R': return "220;50;50";   // 모자
+    case 'k': return "245;200;160"; // 피부
+    case 'B': return "50;90;200";   // 옷
+    default: return "30;30;30";     // 'K' 검정
+    }
+}
 
 // 사용자 정의 함수
 bool isValidXY(int px, int py, vector<vector<int>> map);
@@ -130,7 +163,7 @@ int main()
 void moveUp(vector<vector<int>> map, int &px, int &py)
 {
 
-    if (!isValidXY(px, py, map))
+    if (!isValidXY(px, py - 1, map))
     {
         cout << "맵을 벗어났습니다. 다시 돌아갑니다." << endl;
     }
@@ -147,7 +180,7 @@ void moveUp(vector<vector<int>> map, int &px, int &py)
 void moveDown(vector<vector<int>> map, int &px, int &py)
 {
 
-    if (!isValidXY(px, py, map))
+    if (!isValidXY(px, py + 1, map))
     {
         cout << "맵을 벗어났습니다. 다시 돌아갑니다." << endl;
     }
@@ -164,7 +197,7 @@ void moveLeft(vector<vector<int>> map, int &px, int &py)
 {
     // TODO: 왼쪽으로 이동하기
 
-    if (!isValidXY(px, py, map))
+    if (!isValidXY(px - 1, py, map))
     {
         cout << "맵을 벗어났습니다. 다시 돌아갑니다." << endl;
     }
@@ -181,7 +214,7 @@ void moveRight(vector<vector<int>> map, int &px, int &py)
 {
     // TODO: 오른쪽으로 이동하기
 
-    if (!isValidXY(px, py, map))
+    if (!isValidXY(px + 1, py, map))
     {
         cout << "맵을 벗어났습니다. 다시 돌아갑니다." << endl;
     }
@@ -196,46 +229,32 @@ void moveRight(vector<vector<int>> map, int &px, int &py)
 // 이동하려는 좌표(px, py)가 맴 범위 안이고 벽이 아닌지 체크하는 함수
 bool isValidXY(int px, int py, vector<vector<int>> map)
 {
-    bool checkFlag = false;
-    // 유효하지 않은 맵 위치 이동시 trueq 반환
-    if (py >= 0 && py < map.size() && px >= 0 && px < map[py].size())
-    {
-        checkFlag = true;
-    }
-
-    // 이동하려는 위치가 벽이면 true 반환
-    if (map[py][px] != 1)
-    {
-        checkFlag = true;
-    }
-
-    return checkFlag;
+    return py >= 0 && py < map.size() && px >= 0 && px < map[py].size() && map[py][px] != WALL;
 }
 
 void printMap(const vector<vector<int>> &map, int py, int px)
 {
+    // 포켓몬 그림과 같은 방식: 반블록 ▀ 한 글자에 위 픽셀(글자색) + 아래 픽셀(배경색)
     for (int y = 0; y < map.size(); y++)
     {
-        for (int x = 0; x < map[y].size(); x++)
+        for (int ty = 0; ty < TILE_SIZE; ty += 2)
         {
-            if (y == py && x == px)
+            for (int x = 0; x < map[y].size(); x++)
             {
-                cout << YELLOW << "@" << RESET << " "; // 플레이어
+                // 플레이어 칸이면 플레이어 픽셀, 투명(공백)이면 밑의 타일 픽셀
+                auto pixel = [&](int row, int col)
+                {
+                    char c = (y == py && x == px) ? PLAYER_TILE[row][col] : ' ';
+                    return c == ' ' ? TILES[map[y][x]][row][col] : c;
+                };
+                for (int tx = 0; tx < TILE_SIZE; tx++)
+                {
+                    cout << "\033[38;2;" << pixelColor(pixel(ty, tx)) << "m"
+                         << "\033[48;2;" << pixelColor(pixel(ty + 1, tx)) << "m▀";
+                }
             }
-            else if (map[y][x] == 1)
-            {
-                cout << "# "; // 벽/나무
-            }
-            else if (map[y][x] == 2)
-            {
-                cout << GREEN << "\"" << RESET << " "; // 풀숲 (타일형은 GRASS_TILE + "\" " + RESET)
-            }
-            else
-            {
-                cout << GRAY << "." << RESET << " "; // 일반 길
-            }
+            cout << RESET << "\n";
         }
-        cout << "\n";
     }
 }
 
