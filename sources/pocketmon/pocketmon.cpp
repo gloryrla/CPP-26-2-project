@@ -99,10 +99,25 @@ void Pocketmon::printHpBar() {
     if (crrHp < 0) crrHp = 0;
     int filled = crrHp * width / maxHp;
 
-    cout << "HP [";
+    // 50% 초과 초록, 20~50% 노랑, 20% 미만 빨강
+    int pct = crrHp * 100 / maxHp;
+    string color;
+    if (pct > 50)
+        color = "\033[32m";
+    else if (pct >= 20)
+        color = "\033[33m";
+    else
+        color = "\033[31m";
+
+    cout << "HP [" << color;
     for (int i = 0; i < width; i++)
-        cout << (i < filled ? "█" : "░");
-    cout << "] " << crrHp << "/" << maxHp << endl;
+    {
+        if (i < filled)
+            cout << "█";
+        else
+            cout << "░";
+    }
+    cout << "\033[0m] " << crrHp << "/" << maxHp << endl;
 }
 
 
@@ -121,18 +136,12 @@ int Pocketmon::getHp() {
 }
 
 bool Pocketmon::DemagePocketmon(Skill skill, bool flag) {
-    cout << skill.name << "사용" << endl;
-    cout << name << "이/가 " << skill.power << "데미지를 입었다" << endl;
-
+    // 출력은 배틀 화면(drawBattle)이 담당, 여기선 HP만 깎는다
     crrHp -= skill.power;
 
     if (crrHp <= 0) {
         crrHp = 0;
-        cout << name <<"을 쓰러트렸습니다." << endl;
-        printPocketInfo();
         flag = false;
-    } else {
-        printPocketInfo();
     }
 
     return flag;
