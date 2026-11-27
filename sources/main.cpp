@@ -30,6 +30,11 @@ const string TILES[3][TILE_SIZE] = {
 const string PLAYER_TILE[TILE_SIZE] = {
     "  RRRR  ", " RRRRRR ", " KkkkkK ", " kKkkKk ",
     "  BBBB  ", " kBBBBk ", "  BBBB  ", "  K  K  "};
+// 몬스터볼 12x12: 공백은 투명
+const string BALL_TILE[12] = {
+    "    KKKK    ", "  KKRRRRKK  ", " KRRWWRRRRK ", " KRWWRRRRRK ",
+    "KRRRRRRRRRRK", "KKKKKWWKKKKK", "KWWWKWWKWWWK", "KWWWWKKWWWWK",
+    " KWWWWWWWWK ", " KWWWWWWWWK ", "  KKWWWWKK  ", "    KKKK    "};
 
 // 픽셀 글자 -> "R;G;B"
 string pixelColor(char c)
@@ -62,6 +67,8 @@ string pixelColor(char c)
         return "245;200;160"; // 피부
     case 'B':
         return "50;90;200"; // 옷
+    case 'W':
+        return "240;240;240"; // 몬스터볼 흰색
     default:
         return "30;30;30"; // 'K' 검정
     }
@@ -74,8 +81,8 @@ void moveDown(vector<vector<int>> map, int &px, int &py);
 void moveLeft(vector<vector<int>> map, int &px, int &py);
 void moveRight(vector<vector<int>> map, int &px, int &py);
 void printMap(const vector<vector<int>> &map, int playerY, int playerX);
-void pocketmonBattle(Pocketmon &p1, vector<Skill> skills, Pocketmon &toPocketmon);
-void checkGrass(User user, vector<vector<int>> map,  int px, int py);
+void pocketmonBattle(User &user, Pocketmon &p1, vector<Skill> skills, Pocketmon &toPocketmon);
+void checkGrass(User &user, vector<vector<int>> map, int px, int py);
 void drawBattle(Pocketmon &me, Pocketmon &enemy, const string &msg, bool typing = false, Pocketmon *hidden = nullptr);
 
 // g++ -std=c++17 -Ipocketmon *.cpp pocketmon/*.cpp -o main && ./main
@@ -142,25 +149,25 @@ int main()
         if (user_input == "상")
         {
             moveUp(map, px, py);
-            //풀숲인지 확인
+            // 풀숲인지 확인
             checkGrass(user, map, px, py);
         }
         else if (user_input == "하")
         {
             moveDown(map, px, py);
-            //풀숲인지 확인
+            // 풀숲인지 확인
             checkGrass(user, map, px, py);
         }
         else if (user_input == "좌")
         {
             moveLeft(map, px, py);
-            //풀숲인지 확인
+            // 풀숲인지 확인
             checkGrass(user, map, px, py);
         }
         else if (user_input == "우")
         {
             moveRight(map, px, py);
-            //풀숲인지 확인
+            // 풀숲인지 확인
             checkGrass(user, map, px, py);
         }
         else if (user_input == "2")
@@ -173,7 +180,6 @@ int main()
         {
             cout << "잘못된 입력입니다.: " << endl;
         }
-
     }
 }
 
@@ -282,6 +288,28 @@ void printMap(const vector<vector<int>> &map, int py, int px)
     }
 }
 
+// 몬스터볼 그리기: 투명 픽셀은 배경 그대로 (indent칸 만큼 오른쪽으로)
+void printBall(int indent = 0)
+{
+    for (int y = 0; y < 12; y += 2)
+    {
+        cout << string(indent, ' ');
+        for (int x = 0; x < 12; x++)
+        {
+            char top = BALL_TILE[y][x], bot = BALL_TILE[y + 1][x];
+            if (top == ' ' && bot == ' ')
+                cout << RESET << " ";
+            else if (top == ' ') // 아래만 색: ▄ 글자색으로
+                cout << RESET << "\033[38;2;" << pixelColor(bot) << "m▄";
+            else if (bot == ' ') // 위만 색: ▀ 글자색으로
+                cout << RESET << "\033[38;2;" << pixelColor(top) << "m▀";
+            else
+                cout << "\033[38;2;" << pixelColor(top) << "m\033[48;2;" << pixelColor(bot) << "m▀";
+        }
+        cout << RESET << "\n";
+    }
+}
+
 // ms 밀리초 동안 멈춘다
 void pause(int ms)
 {
@@ -321,7 +349,7 @@ bool attack(Pocketmon &p1, Pocketmon &toPocketmon, const string &who, Skill s, P
     return target.getHp() > 0;
 }
 
-void pocketmonBattle(Pocketmon &p1, vector<Skill> skills, Pocketmon &toPocketmon)
+void pocketmonBattle(User &user, Pocketmon &p1, vector<Skill> skills, Pocketmon &toPocketmon)
 {
     string user_input = "";
     show(p1, toPocketmon, "야생의 " + toPocketmon.getName() + "이(가) 나타났다!");
@@ -329,38 +357,61 @@ void pocketmonBattle(Pocketmon &p1, vector<Skill> skills, Pocketmon &toPocketmon
     while (true)
     {
         drawBattle(p1, toPocketmon, p1.getName() + "은(는) 무엇을 할까?", true);
-        cout << "1. 싸운다  2. 도망친다: ";
+        cout << "1. 싸운다 2. 몬스터볼 3. 도망친다: ";
         cin >> user_input;
 
-        if (user_input != "1")
+        if (user_input == "3")
         {
             show(p1, toPocketmon, "무사히 도망쳤다!");
             return;
         }
 
-        drawBattle(p1, toPocketmon, "어떤 기술을 쓸까?");
-        p1.printSkills();
-        cout << "사용할 스킬 번호를 입력하세요: ";
-        cin >> user_input;
-
-        int idx = user_input[0] - '1';
-        if (user_input.size() != 1 || idx < 0 || idx >= skills.size())
-            continue; // 잘못된 번호면 메뉴로
-
-        // 내 턴
-        if (!attack(p1, toPocketmon, p1.getName(), skills[idx], toPocketmon))
+        if (user_input == "2")
         {
-            show(p1, toPocketmon, "야생의 " + toPocketmon.getName() + "을(를) 쓰러트렸다!");
-            return;
+            // 포켓몬 포획
+            for (int i = 0; i < 3; i++) // 볼 3번 깜빡임: 그림 → 멈춤 → 지움 → 멈춤
+            {
+                drawBattle(p1, toPocketmon, "몬스터볼을 던졌다!", false, &toPocketmon); // 적 그림 숨김
+                printBall(10);
+                pause(400);
+                drawBattle(p1, toPocketmon, "몬스터볼을 던졌다!", false, &toPocketmon); // 볼 없이 다시 그림
+                pause(200);
+            }
+
+            if (toPocketmon.tryCatch()) {
+                show(p1, toPocketmon, "신난다! " + toPocketmon.getName() + "을(를) 붙잡았다!");
+                user.addPocketmon(toPocketmon); // getPocketmons()는 복사본이라 거기 push_back하면 사라짐
+                return;
+            } 
+
+            
         }
 
-        // 적 턴: 적 자신의 스킬 중 하나
-        vector<Skill> enemySkills = toPocketmon.getSkills();
-        Skill s = enemySkills[rand() % enemySkills.size()];
-        if (!attack(p1, toPocketmon, "야생 " + toPocketmon.getName(), s, p1))
-        {
-            show(p1, toPocketmon, p1.getName() + "이(가) 쓰러졌다...");
-            return;
+        if (user_input == "1") {
+            drawBattle(p1, toPocketmon, "어떤 기술을 쓸까?");
+            p1.printSkills();
+            cout << "사용할 스킬 번호를 입력하세요: ";
+            cin >> user_input;
+
+            int idx = user_input[0] - '1';
+            if (user_input.size() != 1 || idx < 0 || idx >= skills.size())
+                continue; // 잘못된 번호면 메뉴로
+
+            // 내 턴
+            if (!attack(p1, toPocketmon, p1.getName(), skills[idx], toPocketmon))
+            {
+                show(p1, toPocketmon, "야생의 " + toPocketmon.getName() + "을(를) 쓰러트렸다!");
+                return;
+            }
+
+            // 적 턴: 적 자신의 스킬 중 하나
+            vector<Skill> enemySkills = toPocketmon.getSkills();
+            Skill s = enemySkills[rand() % enemySkills.size()];
+            if (!attack(p1, toPocketmon, "야생 " + toPocketmon.getName(), s, p1))
+            {
+                show(p1, toPocketmon, p1.getName() + "이(가) 쓰러졌다...");
+                return;
+            }
         }
     }
 }
@@ -398,14 +449,15 @@ void drawBattle(Pocketmon &me, Pocketmon &enemy, const string &msg, bool typing,
     cout << me.getName() << "  ";
     me.printHpBar();
 
-    string shown = msg;
+    string shown = msg; // 메시지 박스에서 처음 그릴 글자
+
     if (typing) // 타이핑이면 빈 박스부터 그림
         shown = "";
     cout << "┌" << line << "┐\n"
          << "│ " << shown << string(max(0, BOX - 1 - displayWidth(shown)), ' ') << "│\n"
          << "└" << line << "┘" << endl;
 
-    if (typing)
+    if (typing) // 빈 박스 출력 후 글자 하나씩 출력
     {
         cout << "\033[2A\033[3G"; // 커서를 박스 안(2줄 위, 3번째 칸)으로
         for (int i = 0; i < msg.size(); i++)
@@ -415,14 +467,14 @@ void drawBattle(Pocketmon &me, Pocketmon &enemy, const string &msg, bool typing,
             if (i + 1 == msg.size() || (msg[i + 1] & 0xC0) != 0x80)
             {
                 cout << flush;
-                pause(25);
+                pause(25); // 글자 한글자 출력 후 pause
             }
         }
         cout << "\033[2B\r" << flush; // 커서를 박스 아래로 되돌림
     }
 }
 
-void checkGrass(User user, vector<vector<int>> map,  int px, int py)
+void checkGrass(User &user, vector<vector<int>> map, int px, int py)
 {
     // 이동 후 풀숲 판정 예시
     if (map[py][px] == GRASS)
@@ -430,7 +482,7 @@ void checkGrass(User user, vector<vector<int>> map,  int px, int py)
         if (rand() % 100 < 100)
         { // 30% 확률로 야생 포켓몬 등장
             Pocketmon p;
-            pocketmonBattle(user.getPocketmons()[0], user.getPocketmons()[0].getSkills(), p);
+            pocketmonBattle(user, user.getPocketmons()[0], user.getPocketmons()[0].getSkills(), p);
             printMap(map, py, px); // 배틀 화면이 맵을 지웠으니 다시 그림
         }
     }

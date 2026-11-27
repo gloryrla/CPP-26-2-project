@@ -110,13 +110,11 @@ void Pocketmon::printHpBar() {
         color = "\033[31m";
 
     cout << "HP [" << color;
+
+
     for (int i = 0; i < width; i++)
-    {
-        if (i < filled)
-            cout << "█";
-        else
-            cout << "░";
-    }
+        cout << (i < filled ? "█" : "░");
+        
     cout << "\033[0m] " << crrHp << "/" << maxHp << endl;
 }
 
@@ -150,5 +148,13 @@ bool Pocketmon::DemagePocketmon(Skill skill, bool flag) {
 string Pocketmon::getName() {
     return name;
 };
+
+//Hp가 적을 수록 잘잡힘
+bool Pocketmon::tryCatch() {
+    int chance = (maxHp - crrHp) * 100 / maxHp + 10;
+    // return rand() % 100 < chance; 
+    return true; //테스트용
+
+}
 
 

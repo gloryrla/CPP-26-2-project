@@ -29,4 +29,5 @@ public:
     int getHp();
     bool DemagePocketmon(Skill skill, bool flag);
     string getName();
+    bool tryCatch();
 };
