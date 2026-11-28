@@ -71,13 +71,14 @@ Pocketmon::Pocketmon() : Pocketmon(rand() % 151 + 1) {
 // 2. id를 받는 생성자: 실제 초기화 로직을 한 곳에서만 관리
 Pocketmon::Pocketmon(int id) {
     this->id = id;          // <-- 멤버 변수 id에 저장 (필수!)
-    maxHp = 100;
+    maxHp = 100 + level * 5;
     crrHp = maxHp;
     name = NAMES[id - 1];   // 배열은 0부터라서 -1
     Type type = TYPES[id - 1]; // 이 포켓몬의 타입
     skills.push_back(TYPE_SKILLS[type][0]);
     skills.push_back(TYPE_SKILLS[type][1]);
-
+    level = 1;
+    exp = 0;
     ifstream fin("../pocketmonImages/" + to_string(id) + "_" + name + ".txt");
     string line;
     while (getline(fin, line)) {
@@ -135,7 +136,7 @@ int Pocketmon::getHp() {
 
 bool Pocketmon::DemagePocketmon(Skill skill, bool flag) {
     // 출력은 배틀 화면(drawBattle)이 담당, 여기선 HP만 깎는다
-    crrHp -= skill.power;
+    crrHp -= skill.power + level;
 
     if (crrHp <= 0) {
         crrHp = 0;
@@ -155,6 +156,31 @@ bool Pocketmon::tryCatch() {
     // return rand() % 100 < chance; 
     return true; //테스트용
 
+}
+
+//경험치를 얻고 레벨업 했는지 t/f 반환
+bool Pocketmon::gainExp(int amount) {
+    exp += amount;
+    //레밸업 안했다면 
+    if (exp < level * 10) return false;
+    // 레밸업 했다면 
+    exp -= level * 10; // 레밸 업 후 남은 경험치 추가
+    level++; // 레밸업
+    maxHp += 10; // 최대최력 추가 
+    crrHp = maxHp;
+    return true;
+}
+
+int Pocketmon::getLevel() {
+    return level;
+}
+
+void Pocketmon::setLevel(int amount) {
+    level = amount;
+    // 랜덤 값이 0보다 작으면 1로 초기화
+    if (amount < 0) {
+        level = 1;
+    }
 }
 
 

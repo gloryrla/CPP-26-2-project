@@ -144,7 +144,6 @@ int main()
         cout << "이동할 명렁어 숫자를 입력하세요 1.상,하,좌,우 2. 가방: ";
         cin >> user_input;
 
-        int oldX = px, oldY = py; // 실제로 이동했는지 판정용
 
         if (user_input == "상")
         {
@@ -380,7 +379,7 @@ void pocketmonBattle(User &user, Pocketmon &p1, vector<Skill> skills, Pocketmon 
 
             if (toPocketmon.tryCatch()) {
                 show(p1, toPocketmon, "신난다! " + toPocketmon.getName() + "을(를) 붙잡았다!");
-                user.addPocketmon(toPocketmon); // getPocketmons()는 복사본이라 거기 push_back하면 사라짐
+                user.addPocketmon(toPocketmon); 
                 return;
             } 
 
@@ -441,12 +440,14 @@ void drawBattle(Pocketmon &me, Pocketmon &enemy, const string &msg, bool typing,
     for (int i = 0; i < BOX; i++)
         line += "─";
 
-    cout << "\033[2J\033[H"; // 화면 지우고 커서를 맨 위로
+    cout << "\033[2J\033[3J\033[H"; // 화면 + 스크롤 기록 지우고 커서를 맨 위로
     cout << enemy.getName() << "  ";
+    cout << "Level. " << enemy.getLevel() << endl;
     enemy.printHpBar();
     enemy.printArt(&enemy == hidden);
     me.printArt(&me == hidden);
     cout << me.getName() << "  ";
+    cout << "Level. " << enemy.getLevel() << endl;
     me.printHpBar();
 
     string shown = msg; // 메시지 박스에서 처음 그릴 글자
@@ -482,6 +483,8 @@ void checkGrass(User &user, vector<vector<int>> map, int px, int py)
         if (rand() % 100 < 100)
         { // 30% 확률로 야생 포켓몬 등장
             Pocketmon p;
+            int userPocketmonLv = user.getPocketmons()[0].getLevel();
+            p.setLevel(userPocketmonLv - 2 + rand() % 5);
             pocketmonBattle(user, user.getPocketmons()[0], user.getPocketmons()[0].getSkills(), p);
             printMap(map, py, px); // 배틀 화면이 맵을 지웠으니 다시 그림
         }
